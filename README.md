@@ -56,14 +56,18 @@ The core causal framework compares the *change* in the sales gap between treatme
 | OLS + Day Fixed Effects | −$17.54 | (−$295.54, +$260.46) | No |
 | **OLS + DMA & Day Fixed Effects** | −$17.56 | (−$19.04, −$16.04) | **Yes** |
 
-DMA fixed effects eliminate between-region noise (e.g. New York vs. a small midwestern market), explaining why they dramatically narrow the confidence interval. Time fixed effects add little additional precision in this dataset, but the two-way FE specification is preferred for robustness. The parallel trends assumption — that treatment and control DMAs would have followed the same trajectory absent intervention — is a necessary identifying condition; its plausibility is supported by random assignment of treated DMAs.
+DMA fixed effects eliminate between-region noise (e.g. New York vs. a small midwestern market), explaining why they dramatically narrow the confidence interval. Time fixed effects add little additional precision in this dataset, but the two-way FE specification is preferred for robustness. The key identifying assumption is parallel trends: absent the ad shutdown, the sales gap between treatment and control DMAs would have remained stable, meaning the two groups would have continued to follow broadly similar seasonal patterns and time trends. Random assignment of treated DMAs makes this assumption more plausible, but it still needs to be checked in the data.
 
 ### Parallel Trends Check
-The notebook now includes an explicit validation step for the DiD identifying assumption. First, pre-treatment sales paths are plotted for treatment and control DMAs, both in raw levels and normalized to each group's pre-period mean, showing broadly similar movement before the intervention. Second, a formal pre-trend regression is estimated on the pre-period only:
+The notebook now includes an explicit validation step for the DiD identifying assumption. Conceptually, this check asks whether treatment and control DMAs were already drifting apart before ads were turned off; if they were, the post-period DiD estimate could reflect pre-existing momentum rather than the causal effect of advertising.
+
+First, pre-treatment sales paths are plotted for treatment and control DMAs, both in raw levels and normalized to each group's pre-period mean. The visual evidence suggests the groups move in the same direction with similar slope before treatment. Control DMAs then largely continue on that pattern in the post period, while treatment DMAs diverge only after ads are suspended.
+
+Second, a formal pre-trend regression is estimated on the pre-period only:
 
 `TotalSales ~ Treatment * DayIndex + C(DMA)`
 
-The interaction term `Treatment x DayIndex` is small and statistically insignificant (`-0.0550`, `p = 0.4504`, 95% CI `[-0.1976, 0.0877]`), which is consistent with parallel pre-treatment trends. This does not prove the assumption, but it meaningfully strengthens the credibility of the DiD design relative to relying on randomization alone.
+The interaction term `Treatment x DayIndex` captures whether treatment DMAs had a different underlying sales trend than control DMAs before the intervention. It is small and statistically insignificant (`-0.0550`, `p = 0.4504`, 95% CI `[-0.1976, 0.0877]`), which is consistent with parallel pre-treatment trends. This does not prove the assumption, but it meaningfully strengthens the credibility of the DiD design relative to relying on randomization alone.
 
 ### Causal ROI Estimation
 A second DiD regression with `AdSpend` as the outcome estimates the counterfactual ad spend that would have occurred in treatment DMAs. Combining the incremental sales and incremental ad spend estimates yields the causal ROI of −60%, reflecting a scenario where paid search generated less than $0.60 of incremental sales for every $1.00 spent.
