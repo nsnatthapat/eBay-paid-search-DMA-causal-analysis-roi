@@ -2,8 +2,6 @@
 
 A geo-based randomized experiment measuring the **true incremental impact of paid search advertising** on eBay total sales — contrasting naïve attribution with rigorous causal methods.
 
----
-
 ## Problem
 
 eBay relied on standard click-attribution metrics to evaluate the ROI of its paid search campaigns. Attribution-based approaches systematically overstate ad effectiveness because they credit conversions to paid clicks even when the customer would have purchased anyway through organic search. To address this, eBay ran a geo-randomized experiment: paid search ads were suspended in a randomly selected set of U.S. Designated Market Areas (DMAs) while remaining active in others. The core question is whether the resulting difference in sales — properly adjusted for pre-existing regional differences — reflects the **causal** value of paid search.
@@ -44,7 +42,7 @@ The dataset covers **18,200 DMA-day observations** across approximately 200 U.S.
 ### Experimental Design
 Treatment DMAs were randomly selected, enabling causal identification. Pre-treatment equivalence was partially violated in raw averages (control DMAs generated ~$569/day more in sales than treatment DMAs before the experiment), underscoring the need for a method that controls for baseline differences.
 
-### Naïve ROI Benchmark
+### Naive ROI Benchmark
 Using pre-period data only, attributed sales versus ad spend yield a ~272% return — an upper bound inflated by non-incremental attributions.
 
 ### Difference-in-Differences (DiD)
@@ -59,6 +57,13 @@ The core causal framework compares the *change* in the sales gap between treatme
 | **OLS + DMA & Day Fixed Effects** | −$17.56 | (−$19.04, −$16.04) | **Yes** |
 
 DMA fixed effects eliminate between-region noise (e.g. New York vs. a small midwestern market), explaining why they dramatically narrow the confidence interval. Time fixed effects add little additional precision in this dataset, but the two-way FE specification is preferred for robustness. The parallel trends assumption — that treatment and control DMAs would have followed the same trajectory absent intervention — is a necessary identifying condition; its plausibility is supported by random assignment of treated DMAs.
+
+### Parallel Trends Check
+The notebook now includes an explicit validation step for the DiD identifying assumption. First, pre-treatment sales paths are plotted for treatment and control DMAs, both in raw levels and normalized to each group's pre-period mean, showing broadly similar movement before the intervention. Second, a formal pre-trend regression is estimated on the pre-period only:
+
+`TotalSales ~ Treatment * DayIndex + C(DMA)`
+
+The interaction term `Treatment x DayIndex` is small and statistically insignificant (`-0.0550`, `p = 0.4504`, 95% CI `[-0.1976, 0.0877]`), which is consistent with parallel pre-treatment trends. This does not prove the assumption, but it meaningfully strengthens the credibility of the DiD design relative to relying on randomization alone.
 
 ### Causal ROI Estimation
 A second DiD regression with `AdSpend` as the outcome estimates the counterfactual ad spend that would have occurred in treatment DMAs. Combining the incremental sales and incremental ad spend estimates yields the causal ROI of −60%, reflecting a scenario where paid search generated less than $0.60 of incremental sales for every $1.00 spent.
@@ -82,6 +87,8 @@ The consistent point estimate across all models (-$17.54 to -$17.56) confirms ro
 
 The widening of the control-minus-treatment sales gap from pre to post confirms that turning off ads had a small but measurable negative effect on sales in treatment DMAs relative to the counterfactual.
 
+The added parallel trends diagnostics point in the same direction: treatment and control DMAs track similarly before the intervention, and the post-treatment divergence appears only after ads are turned off in treated markets. That pattern supports interpreting the DiD estimate as causal rather than as an artifact of differential pre-existing trends.
+
 ---
 
 ## Conclusion
@@ -92,7 +99,7 @@ Paid search advertising generates **negative causal ROI** for eBay at the scale 
 
 **Limitations:**
 - The experiment covers a single seasonal window (~91 days in 2024) and may not generalize to other periods or product categories.
-- The parallel trends assumption, while supported by randomization, cannot be formally verified without pre-treatment trend data spanning multiple periods.
+- The parallel trends assumption is now checked in the notebook using both visualization and a pre-period regression test; the evidence is supportive rather than definitive, since no diagnostic can fully prove the counterfactual trend would have remained parallel after treatment.
 - Durbin-Watson statistics indicate residual autocorrelation in OLS models; cluster-robust standard errors at the DMA level would further strengthen inference.
 - The Synthetic Control analysis for Philadelphia was computationally intensive and could not be completed in the experimental session.
 
